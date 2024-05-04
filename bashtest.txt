@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Define variables
+activedir=$(dirname "$0")
+username=$(whoami)
+password=$(cat /User/$username/Documents/.envvars/secrets.txt)
+
+# Define payload
+payload=$(cat <<EOF
+{
+    "intent": "save",
+    "required": "username,password",
+    "viewstate": "add",
+    "username": "$username",
+    "username_previous": "",
+    "password": "$password"
+}
+EOF
+)
+
+# Send authentication request and save cookies
+response=$(curl -s -H 'Content-Type: application/json' -d "$payload" -X POST 'https://tassweb.knox.nsw.edu.au/studentcafe/remote-json.cfm?do=ui.web.user.loginAttempt&responsiveui=true' -c cookies.txt)
+
+response_cookies=$(<cookies.txt)
+
+# Send request to protected URL and save response to a temporary file
+protected_response=$(curl -s -X GET -b "$response_cookies" "https://tassweb.knox.nsw.edu.au/studentcafe/index.cfm#timetable")
+
+# Read the content of the temporary file into a Bash variable (assuming protected_response is a URL)
+site_html=$(curl -s "$protected_response")
+
+# Now you can use the $site_html variable as needed in your script
+echo "Site HTML: $site_html"
